@@ -1,0 +1,15 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.Issue
+import java.text.SimpleDateFormat
+import  java.util.Date.*
+import com.atlassian.jira.ComponentManager;
+import com.atlassian.jira.issue.IssueManager;
+IssueManager issueManager = ComponentAccessor.getIssueManager();
+Issue issue = issueManager.getIssueObject("TP-206");
+def ca = ComponentAccessor.getCustomFieldManager();
+def cf1 = ca.getCustomFieldObject('customfield_18728') // Date & Time Received
+def cf1val = (issue.getCustomFieldValue(cf1) as Date)   
+
+def date = new Date()
+
+return date >= cf1val
