@@ -1,0 +1,101 @@
+//**** creates the sub task based on the drop down values selected with in the Bundled Fields.
+
+import com.atlassian.jira.component.ComponentAccessor
+import groovy.json.JsonSlurper
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
+import com.atlassian.jira.issue.MutableIssue
+def parentIssue = issue
+
+def log = Logger.getLogger("com.onresolve.scriptrunner.runner.ScriptRunnerImpl")
+log.setLevel(Level.DEBUG)
+
+String bundledFieldId= "customfield_33280" 
+//field column in bundledfield
+String fieldName = "select field"
+//row in bundledfield
+Integer row = 0 
+
+def issueManager = ComponentAccessor.getIssueManager()
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+def cfBundledFields = customFieldManager.getCustomFieldObject(bundledFieldId)
+
+
+String cfValue = parentIssue.getCustomFieldValue(cfBundledFields)
+Object jsonValue = new JsonSlurper().parseText(cfValue)
+def fie =" "
+////Retrieve a value of requested row and field name
+for (i =0; i<jsonValue.size(); i++){
+List fields = getFieldsForRow(i,(Map) jsonValue)
+
+
+Map field = getFieldByName(fieldName,fields)
+def value = getFieldValue(field)
+  
+ log.debug("New ${value}") 
+
+def user = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+def issueFactory = ComponentAccessor.getIssueFactory()
+def subTaskManager = ComponentAccessor.getSubTaskManager()
+def constantManager = ComponentAccessor.getConstantsManager()
+def issueManager1 = ComponentAccessor.getIssueManager()
+
+//log.debug("New issue ${issue.get("Application Name")[i].toString()}")
+MutableIssue newSubTask = issueFactory.getIssue()
+newSubTask.setSummary(value)
+
+newSubTask.setParentObject(parentIssue)
+    //newSubTask.setPriorityId(constantManager.getPriorities().find {
+      //  it.getName() == "High"
+    //}.id)
+    newSubTask.setProjectObject(parentIssue.getProjectObject())
+    //newSubTask.setIssueTypeId(
+      def ID =  constantManager.getAllIssueTypeObjects().find{
+        it.getName() == "Approval"
+    }.id.toString()
+
+  newSubTask.setIssueTypeId(ID)
+   
+    // Add any other fields you want for the newly created sub task
+    log.debug("New issue ${newSubTask}")
+
+    Map<String,Object> newIssueParams = ["issue" : newSubTask] as Map<String,Object>
+
+      issueManager1.createIssueObject(user, newIssueParams)
+    
+    subTaskManager.createSubTaskIssueLink(parentIssue, newSubTask, user)
+
+    log.info "Issue with summary ${newSubTask.summary} created"
+
+
+}
+
+def String getFieldValue(Map field){
+    def type = field.type
+    if(type == 'select' || type == 'checkbox'){
+        return getOptionValue(field)
+    }
+    return field.value
+}
+def String getOptionValue(Map field){
+    List<Map> options = (List<Map>) field.options
+    Map option = options.find{it.id == field.value}
+    return option ? option.name : null
+}
+
+
+def Map getFieldByName(fieldName, List<Map> fields){
+    return fields.find{it.name == "Database Platform"}
+}
+
+def List getFieldsForRow(row,Map json){
+    List fields = null
+    int i=0
+    json.each{k,v -> 
+        if(i == row){
+            fields = ((Map) v).get("fields")
+        }
+        i++
+    }
+    return fields
+} 
