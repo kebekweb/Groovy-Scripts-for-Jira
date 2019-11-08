@@ -14,3 +14,16 @@ def cf2val = (issue.getCustomFieldValue(cf2) as Date)
 
 
 return cf2val >= cf1val
+
+
+def diemRateValue =  issue.getCustomFieldValue(diemRate) as Double
+def dateValue = issue.getCustomFieldValue(date1) as Date
+def dateValue2 = issue.getCustomFieldValue(date2) as Date
+def calculation = (dateValue2 - dateValue).toInteger()
+def changeHolder = new DefaultIssueChangeHolder();
+
+//float jobSizeInt =Float.parseFloat(jobSizeValue);
+def totalcost = calculation * diemRateValue
+days.updateValue(null, issue, new ModifiedValue(issue.getCustomFieldValue(days), calculation as Double),changeHolder);
+
+totalRate.updateValue(null, issue, new ModifiedValue(issue.getCustomFieldValue(totalRate), totalcost.round(3) as String),changeHolder);
