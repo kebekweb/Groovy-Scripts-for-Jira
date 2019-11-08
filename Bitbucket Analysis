@@ -1,0 +1,89 @@
+import cookielib
+import urllib2
+import json
+import base64
+import simplejson
+import ast
+import datetime
+import xlsxwriter
+import subprocess
+import os
+import commands
+######
+import sys
+#reload(sys)
+#sys.setdefaultencoding('utf8')
+######
+class API():
+    api_url = 'https://bitbucket.com/rest/api/1.0/'
+    
+    def __init__(self, username, password, proxy=None):
+        encodedstring = base64.encodestring("%s:%s" % (username, password))[:-1]
+        self._auth = "Basic %s" % encodedstring
+        self._opener = self._create_opener(proxy)
+    
+    def _create_opener(self, proxy=None):
+        cj = cookielib.LWPCookieJar()
+        cookie_handler = urllib2.HTTPCookieProcessor(cj)
+        if proxy:
+            proxy_handler = urllib2.ProxyHandler(proxy)
+            opener = urllib2.build_opener(cookie_handler, proxy_handler)
+        else:
+            opener = urllib2.build_opener(cookie_handler)
+        return opener
+    
+    def get_projects(self):
+        project_list = []
+        query_url = self.api_url + 'projects'
+        try:
+            req = urllib2.Request(query_url, None, {"Authorization": self._auth})
+            handler = self._opener.open(req)
+        except urllib2.HTTPError, e:
+            print e.headers
+            raise e
+        t = simplejson.load(handler)
+        print len(t['values'])
+        t1 = t['values']
+        i = 0
+        while i < len(t['values']):
+            print t1[i]['key'] + "     " + t1[i]['name']
+            project_list.append(t1[i]['key'])
+            i = i + 1
+        with open('projects.txt', 'w') as output_file:
+            output_file.write("\n".join(map(lambda x: str(x), project_list)))
+ 
+    def get_all_repositories_of_a_project(self):
+        proj_repo_map = {}
+        with open('projects.txt', 'r') as input_file:
+            for line in iter(input_file):
+                print("Project Key {}".format(line.strip()))
+                query_url = self.api_url + 'projects' + '/' + line.strip() + '/' + 'repos'
+                print query_url
+                try:
+                    req = urllib2.Request(query_url, None, {"Authorization": self._auth})
+                    handler = self._opener.open(req)
+                except urllib2.HTTPError, e:
+                    print e.headers
+                    raise e
+                t = simplejson.load(handler)
+                print "Total Number of Repositories are :", len(t['values'])
+                t1 = t['values']
+                i = 0
+                repository_list = []
+                while i < len(t['values']):
+                    print t1[i]['slug']
+                    repository_list.append(t1[i]['slug'])
+                    i = i + 1
+                proj_repo_map[line.strip()] = repository_list
+                print proj_repo_map
+        with open('project_repositories.txt', 'w') as output_file:
+            output_file.write(str(proj_repo_map))
+    
+    
+
+api = API(username='swathik1', password='Admin@123')
+# api.get_issues('srivasm4','
+#api.get_projects()
+api.get_all_repositories_of_a_project()
+#api.get_all_branches_of_a_repository()
+#api.get_history_of_commits()
