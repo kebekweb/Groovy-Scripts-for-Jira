@@ -1,0 +1,75 @@
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.workflow.JiraWorkflow
+import com.atlassian.jira.workflow.WorkflowManager
+import java.util.regex.Matcher
+
+String searchText = 'customfield'
+
+WorkflowManager workflowManager = ComponentAccessor.getWorkflowManager()
+Collection<JiraWorkflow> workflows = workflowManager.getWorkflows()
+
+String result = "Workflow;Function;Type;Action;Source-Step<br>"
+
+workflows.each{workflow ->
+    def workflowXml = workflow.descriptor.asXML()
+    //Matcher m = workflowXml =~ /${searchText}/
+    //if (m.find()) {
+        String workflow_name = "${workflow.name}${if(!workflow.isActive()){"(inactive)"} else ''}${if(workflow.isDraftWorkflow()){"(draft)"} else ''}"
+        def wf = new XmlParser().parseText(workflowXml)
+        List<Node> wf_flat = wf.depthFirst()
+        wf_flat.each{
+           // if (it.text() ==~ /.*${searchText}.*/){
+                def nodeInfo = getNodeInfo(it)
+                if (nodeInfo){
+                    result += "$workflow_name;$nodeInfo<br>"
+                }
+            //}
+        }
+    //}
+}
+result
+
+String getNodeInfo(Node n) {
+    String nodetext = ''
+    def valid_action = false
+    def valid_function = false
+    def valid_step = false
+    if (n.name() == 'function') {
+        def m = n.value() 
+        if (m) {
+            nodetext += m[0].toString() + ";"
+        }
+        def p = n.parent()
+        while (p) {
+            switch (p.name()) {
+                case 'post-functions':
+                    valid_function = true
+                    nodetext += "post-function;"; break
+                case 'validators':
+                    valid_function = true
+                    nodetext += "validator;"; break
+                case 'conditions':
+                    valid_function = true
+                    nodetext += "condition;"; break
+                case 'action':
+                    valid_action = true
+                    nodetext += "${p.attribute('name')} (${p.attribute('id')});"; break
+                case 'step':
+                    valid_step = true
+                    nodetext += "${p.attribute('name')} (${p.attribute('id')})"; break
+                case 'global-actions':
+                    valid_step = true
+                    nodetext += "GLOBAL"; break
+                case 'initial-actions':
+                    valid_step = true
+                    nodetext += "INITIAL"; break
+            }
+            p = p.parent()
+        }
+    }
+    if (valid_action && valid_function && valid_step) {
+        return nodetext
+    } else {
+        return ""
+    }
+}
