@@ -1,0 +1,26 @@
+<script type="text/javascript"> 
+jQuery(document).ready(function($) {   
+JIRA.bind(JIRA.Events.NEW_CONTENT_ADDED, function (e, context) {   
+    callChangeFunction();
+});
+callChangeFunction();
+function callChangeFunction(){
+        showHidField();
+    $("#customfield_20885").change(function() {
+        showHidField();
+    });
+}
+    function showHidField(){
+        var dropDownFieldval = $.trim($("#customfield_20885").text());
+        
+		 AJS.$('#summary').val(dropDownFieldval);
+        }
+    }
+});
+
+</script>
+
+<script type="text/javascript">
+ AJS.$('#summary').parent().addClass('hidden');
+    AJS.$('#summary').val('Product Register Record');
+</script>
