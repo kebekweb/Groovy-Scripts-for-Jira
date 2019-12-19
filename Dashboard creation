@@ -1,0 +1,128 @@
+import com.atlassian.fugue.Option
+import com.atlassian.gadgets.dashboard.Color
+import com.atlassian.gadgets.dashboard.Layout
+import com.atlassian.jira.bc.JiraServiceContext
+import com.atlassian.jira.bc.JiraServiceContextImpl
+import com.atlassian.jira.bc.portal.PortalPageService
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.search.SearchRequest
+import com.atlassian.jira.issue.search.SearchRequestManager
+import com.atlassian.jira.jql.parser.JqlQueryParser
+import com.atlassian.jira.portal.PortalPage
+import com.atlassian.jira.portal.PortletConfigurationManager
+import com.atlassian.jira.sharing.SharedEntity
+
+
+def user = ComponentAccessor.jiraAuthenticationContext.loggedInUser
+JiraServiceContext sourceUserServiceCtx = new JiraServiceContextImpl(user)
+
+def portalPageService = ComponentAccessor.getComponent(PortalPageService)
+def portletConfigurationManager = ComponentAccessor.getComponent(PortletConfigurationManager)
+def searchRequestManager = ComponentAccessor.getComponent(SearchRequestManager)
+def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+
+def projectname = ["DA", "TMY"]
+
+
+def i = 0
+for ( i =0; i< projectname.size();i++ ){
+def Dashboardname = projectname[i] + "  Dashboard"
+
+def dashboardTemplate = new PortalPage.Builder()
+    .name(Dashboardname)
+    .description("Info....")
+    .owner(user)
+    .layout(Layout.AA)
+    .permissions(SharedEntity.SharePermissions.GLOBAL) 
+    .build()
+
+
+
+def filterquery = "project = " + projectname[i] 
+def query = jqlQueryParser.parseQuery(filterquery) 
+def filtername = "Filter for " + projectname[i]
+
+// share filter globally
+def templateSearchRequest = new SearchRequest(query, user, filtername, filtername)
+templateSearchRequest.setPermissions(SharedEntity.SharePermissions.GLOBAL)
+def newSearchRequest = searchRequestManager.create(templateSearchRequest)
+
+
+// note that portal page names must be unique per user
+if (!portalPageService.validateForCreate(sourceUserServiceCtx, dashboardTemplate)) {
+    return sourceUserServiceCtx.errorCollection
+}
+
+def targetDash = portalPageService.createPortalPage(sourceUserServiceCtx, dashboardTemplate)
+
+portletConfigurationManager.addDashBoardItem(targetDash.id, 0, 0, 
+    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:assigned-to-me-gadget/gadgets/assigned-to-me-gadget.xml')),
+    Color.color1,
+    [
+        'isConfigured': 'true', 
+        'refresh'     : '15',
+        'sortColumn'  : '',
+        'columnNames' : 'issuetype|issuekey|summary|priority',
+        'num'         : '10'
+    ],
+    Option.none()
+)
+
+portletConfigurationManager.addDashBoardItem(targetDash.id, 0, 1,
+    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:filter-results-gadget/gadgets/filter-results-gadget.xml')),
+    Color.color2,
+    [
+        "filterId"    : newSearchRequest.id.toString(), 
+        'isConfigured': 'true',
+        'refresh'     : 'false',
+        "isPopup"     : "false",
+        'columnNames' : 'issuetype|issuekey|summary|priority',
+        'num'         : '10'
+    ],
+    Option.none() 
+)
+
+
+portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
+    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:pie-chart-gadget/gadgets/piechart-gadget.xml')),
+    Color.color3,
+    [
+        	
+	statType: "assignees",
+                projectOrFilterId: "filter-" + newSearchRequest.id.toString(),
+                isConfigured: "true",
+                isPopup: "false",
+                refresh: "false",
+                columnNames: "--Default--"
+		
+        
+    ],
+    Option.none() 
+    
+)
+     
+portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
+    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:two-dimensional-stats-gadget/gadgets/two-dimensional-stats-gadget.xml')),
+    Color.color3,
+    [
+        	"filterId" :  newSearchRequest.id.toString(),
+		"isConfigured" :  "false",
+		"isPopup" : "false",
+	 
+		"xstattype": "statuses",
+		"ystattype" : "assignees",
+		"sortBy" : "natural",
+		"sortDirection" : "asc",
+		"numberToShow" : "15",
+		"refresh" : "false"
+		
+        
+    ],
+    Option.none() 
+)
+
+log.debug("Created dashboard: $targetDash.id")	
+                                      
+}
+                                      
+                                      
