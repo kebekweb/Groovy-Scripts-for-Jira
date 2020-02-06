@@ -1,3 +1,4 @@
+
 import com.atlassian.fugue.Option
 import com.atlassian.gadgets.dashboard.Color
 import com.atlassian.gadgets.dashboard.Layout
@@ -21,7 +22,7 @@ def portletConfigurationManager = ComponentAccessor.getComponent(PortletConfigur
 def searchRequestManager = ComponentAccessor.getComponent(SearchRequestManager)
 def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
 
-def projectname = ["DA", "TMY"]
+def projectname = ["NT"]
 
 
 def i = 0
@@ -68,7 +69,7 @@ portletConfigurationManager.addDashBoardItem(targetDash.id, 0, 0,
     Option.none()
 )
 
-portletConfigurationManager.addDashBoardItem(targetDash.id, 0, 1,
+portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 1,
     Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:filter-results-gadget/gadgets/filter-results-gadget.xml')),
     Color.color2,
     [
@@ -82,8 +83,7 @@ portletConfigurationManager.addDashBoardItem(targetDash.id, 0, 1,
     Option.none() 
 )
 
-
-portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
+portletConfigurationManager.addDashBoardItem(targetDash.id, 0 ,1,
     Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:pie-chart-gadget/gadgets/piechart-gadget.xml')),
     Color.color3,
     [
@@ -101,20 +101,38 @@ portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
     
 )
      
-portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
-    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:two-dimensional-stats-gadget/gadgets/two-dimensional-stats-gadget.xml')),
+portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 2,
+    Option.some(URI.create('rest/gadgets/1.0/g/com.tngtech.gadgets.jira-barchart-gadget-plugin:barchart/com/tngtech/jira/plugins/gadget/barchart-gadget.xml')),
     Color.color3,
     [
-        	"filterId" :  newSearchRequest.id.toString(),
-		"isConfigured" :  "false",
-		"isPopup" : "false",
-	 
-		"xstattype": "statuses",
-		"ystattype" : "assignees",
-		"sortBy" : "natural",
-		"sortDirection" : "asc",
-		"numberToShow" : "15",
-		"refresh" : "false"
+                "groupField": "-2",
+                "isConfigured": "true",
+                "plotWidth": "80",
+                "tableFontSize": "10",
+                "showTable": "show",
+                "refresh": "15",
+                "projectOrFilterId": "filter-" + newSearchRequest.id.toString(),
+                "axisField": "-2"
+		
+        
+    ],
+    Option.none() 
+)
+
+portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 3,
+    Option.some(URI.create('rest/gadgets/1.0/g/com.atlassian.jira.gadgets:stats-gadget/gadgets/stats-gadget.xml')),
+    Color.color3,
+    [
+                "isConfigured": "true",
+                "sortDirection": "asc",
+                "statType": "assignees",
+                "name": "Jira Project Creation",
+                "refresh": "15",
+                "sortBy": "natural",
+                "projectOrFilterId": "filter-"+ newSearchRequest.id.toString(),
+                "includeResolvedIssues": "false",
+                "id": newSearchRequest.id.toString(),
+                "type": "filter"
 		
         
     ],
@@ -124,5 +142,3 @@ portletConfigurationManager.addDashBoardItem(targetDash.id, 1, 0,
 log.debug("Created dashboard: $targetDash.id")	
                                       
 }
-                                      
-                                      
